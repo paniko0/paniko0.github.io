@@ -16,3 +16,6 @@ github_username:  paniko0
 
 # Build settings
 markdown: kramdown
+
+kramdown:
+  input: GFM
