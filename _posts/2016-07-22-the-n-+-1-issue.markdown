@@ -1,0 +1,46 @@
+---
+layout: post
+title:  "The N+1 issue"
+date:   2016-07-22 20:48:00 -0600
+categories: db orm
+---
+You as a great programmer, just developed the new system. You've created your tests, you've followed all the best practices and you have an awesome deploy system. Everything is working on localhost, but your users are complaining about performance. How's that? After some investigation, you realized some strange behavior in your database. There're more queries being executed than it should have.
+
+Welcome! You're probably facing the n+1 issue.
+
+This issue occurs when your ORM is not handling the selects as it should be, but luck of us, we can fix it. But before we start, let's see what and why this is happening. Let's assume you have a one-to-many relation, as follow:
+
+![Users-Repositories Relation]({{ site.url }}/assets/users-repositories-relation.png)
+
+When you iterate to show your user's repositories, your database has been shot by a lot of queries on repositories the table.
+
+<iframe src="//giphy.com/embed/vftB6ua8uNXy0" width="480" height="351" frameBorder="0" class="giphy-embed" allowFullScreen></iframe><p><a href="http://giphy.com/gifs/vftB6ua8uNXy0"></a></p>
+
+It happens because your ORM is using *Lazy loading initialization*, which means, when you retrieve your Users object from the database, and the iteration on it's Repositories causes the one query for each associated object you might have persisted. We have to change our mapping or the relation to use *Eager loading* instead.
+
+You can easily fix that in Ruby by including the relation on the query:
+
+{% highlight ruby %}
+  User.includes(:repositories).where("login = ?", "paniko0")
+{% endhighlight %}
+
+If your are using Java, you can change your relation, by:
+
+{% highlight java %}
+  @Entity
+  public class User {
+    @Id
+    public Integer id;
+
+    public String login;
+
+    @OneToMany(fetch=FetchType.EAGER)
+    public List<Repository> repositories;
+  }
+
+  // OR adding a fetch statement
+  // from User u INNER JOIN u.repositories r
+
+{% endhighlight %}
+
+Now, only one query is going to be executed and you don't have to worry about that performance flaw again.
